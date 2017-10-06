@@ -8,10 +8,10 @@ class FiLMResblock(object):
     def __init__(self, features, context, is_training,
                  kernel1=list([1, 1]),
                  kernel2=list([3, 3]),
-                 spatial_mask=True, reuse=None):
+                 spatial_location=True, reuse=None):
 
         # Append a mask with spatial location to the feature map
-        if spatial_mask:
+        if spatial_location:
             features = ft_utils.append_spatial_location(features)
 
         # Retrieve the size of the feature map
@@ -21,9 +21,7 @@ class FiLMResblock(object):
         self.conv1 = slim.conv2d(features,
                                  num_outputs=feature_size,
                                  kernel_size=kernel1,
-                                 stride=1,
                                  activation_fn=tf.nn.relu,
-                                 padding='SAME',
                                  scope='conv1',
                                  reuse=reuse)
 
@@ -31,9 +29,7 @@ class FiLMResblock(object):
         self.conv2 = slim.conv2d(self.conv1,
                                  num_outputs=feature_size,
                                  kernel_size=kernel2,
-                                 stride=1,
                                  activation_fn=None,
-                                 padding='SAME',
                                  scope='conv2',
                                  reuse=reuse)
 
@@ -76,7 +72,6 @@ def film_layer(features, context, reuse=False):
     film_params = slim.fully_connected(context,
                                        num_outputs=2 * feature_size,
                                        activation_fn=tf.nn.relu,
-                                       scope=scope,
                                        reuse=reuse)
 
     film_params = tf.expand_dims(film_params, axis=[1])
