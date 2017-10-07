@@ -9,12 +9,12 @@ def variable_length_LSTM(inp, num_hidden, seq_length,
         output = inp
         for d in range(depth):
             with tf.variable_scope('lstmcell'+str(d)):
+
                 cell = tf.contrib.rnn.LayerNormBasicLSTMCell(
                     num_hidden,
                     layer_norm=layer_norm,
                     dropout_keep_prob=dropout_keep_prob,
                     reuse=reuse)
-
 
                 output, _ = tf.nn.dynamic_rnn(
                     cell,
