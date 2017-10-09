@@ -34,6 +34,9 @@ def create_resnet(image_input, is_training, scope="", resnet_version=50, cbn=Non
     """
 
     if cbn is None:
+        assert False, "\n" \
+                      "There is a bug with classic batchnorm with slim networks (https://github.com/tensorflow/tensorflow/issues/4887). \n" \
+                      "Please use the following config -> 'cbn': {'use_cbn':true, 'excluded_scope_names': ['*']}"
         arg_sc = slim_utils.resnet_arg_scope(is_training=is_training)
     else:
         arg_sc = get_resnet_arg_scope(cbn.apply)

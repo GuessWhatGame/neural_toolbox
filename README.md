@@ -1,2 +1,2 @@
 # neural_toolbox
-stand alone neural module (CBN, attention, FiLM layers etc.)
+standalone toolbox for neural modules (CBN, attention, FiLM layers etc.) 
