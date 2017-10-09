@@ -44,7 +44,7 @@ def compute_attention(feature_maps, context, no_mlp_units):
 
 # cf https://arxiv.org/abs/1610.04325
 def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep_dropout):
-    with tf.variable_scope("glimps"):
+    with tf.variable_scope("glimpse"):
         h = int(feature_maps.get_shape()[1])
         w = int(feature_maps.get_shape()[2])
         c = int(feature_maps.get_shape()[3])
@@ -65,7 +65,7 @@ def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep
         with tf.variable_scope("glimpse"):
             g_feature_maps = tf.reshape(feature_maps, shape=[-1, c])  # linearise the feature map as as single batch
             g_feature_maps = tf.nn.dropout(g_feature_maps, keep_dropout)
-            g_feature_maps = utils.fully_connected(g_feature_maps, glimse_embedding_size, scope='picture_projection',
+            g_feature_maps = utils.fully_connected(g_feature_maps, glimse_embedding_size, scope='image_projection',
                                                    activation="tanh", use_bias=False)
 
             hadamard = g_feature_maps * projected_context
