@@ -40,6 +40,7 @@ class FiLMResblock(object):
                  film_layer_fct=film_layer,
                  kernel1=list([1, 1]),
                  kernel2=list([3, 3]),
+                 initializer=slim.variance_scaling_initializer(uniform=True),
                  spatial_location=True, reuse=None):
 
         # Retrieve the size of the feature map
@@ -54,6 +55,8 @@ class FiLMResblock(object):
                                  num_outputs=feature_size,
                                  kernel_size=kernel1,
                                  activation_fn=tf.nn.relu,
+                                 weights_initializer=initializer,
+                                 biases_initializer=initializer,
                                  scope='conv1',
                                  reuse=reuse)
 
@@ -62,6 +65,8 @@ class FiLMResblock(object):
                                  num_outputs=feature_size,
                                  kernel_size=kernel2,
                                  activation_fn=None,
+                                 weights_initializer=initializer,
+                                 biases_initializer=initializer,
                                  scope='conv2',
                                  reuse=reuse)
 
