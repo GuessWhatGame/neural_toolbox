@@ -3,7 +3,7 @@ import tensorflow as tf
 from neural_toolbox import utils
 
 
-def compute_attention(feature_maps, context, no_mlp_units):
+def compute_attention(feature_maps, context, no_mlp_units, reuse=False):
     with tf.variable_scope("attention"):
 
         if len(feature_maps.get_shape()) == 3:
@@ -27,8 +27,8 @@ def compute_attention(feature_maps, context, no_mlp_units):
 
         # compute the evidence from the embedding
         with tf.variable_scope("mlp"):
-            e = utils.fully_connected(embedding, no_mlp_units, scope='hidden_layer', activation="relu")
-            e = utils.fully_connected(e, 1, scope='out')
+            e = utils.fully_connected(embedding, no_mlp_units, scope='hidden_layer', activation="relu", reuse=reuse)
+            e = utils.fully_connected(e, 1, scope='out', reuse=reuse)
 
         e = tf.reshape(e, shape=[-1, h * w, 1])
 
@@ -43,7 +43,7 @@ def compute_attention(feature_maps, context, no_mlp_units):
 
 
 # cf https://arxiv.org/abs/1610.04325
-def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep_dropout):
+def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep_dropout, reuse=False):
     with tf.variable_scope("glimps"):
         h = int(feature_maps.get_shape()[1])
         w = int(feature_maps.get_shape()[2])
@@ -53,7 +53,7 @@ def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep
         context = tf.nn.dropout(context, keep_dropout)
         projected_context = utils.fully_connected(context, glimse_embedding_size,
                                                   scope='hidden_layer', activation="tanh",
-                                                  use_bias=False)
+                                                  use_bias=False, reuse=reuse)
 
         projected_context = tf.expand_dims(projected_context, axis=1)
         projected_context = tf.tile(projected_context, [1, h * w, 1])
@@ -65,13 +65,13 @@ def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep
         with tf.variable_scope("glimpse"):
             g_feature_maps = tf.reshape(feature_maps, shape=[-1, c])  # linearise the feature map as as single batch
             g_feature_maps = tf.nn.dropout(g_feature_maps, keep_dropout)
-            g_feature_maps = utils.fully_connected(g_feature_maps, glimse_embedding_size, scope='picture_projection',
-                                                   activation="tanh", use_bias=False)
+            g_feature_maps = utils.fully_connected(g_feature_maps, glimse_embedding_size, scope='image_projection',
+                                                   activation="tanh", use_bias=False, reuse=reuse)
 
             hadamard = g_feature_maps * projected_context
             hadamard = tf.nn.dropout(hadamard, keep_dropout)
 
-            e = utils.fully_connected(hadamard, no_glims, scope='hadamard_projection')
+            e = utils.fully_connected(hadamard, no_glims, scope='hadamard_projection', reuse=reuse)
             e = tf.reshape(e, shape=[-1, h * w, no_glims])
 
             for i in range(no_glims):
