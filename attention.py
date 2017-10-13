@@ -44,7 +44,7 @@ def compute_attention(feature_maps, context, no_mlp_units, reuse=False):
 
 # cf https://arxiv.org/abs/1610.04325
 def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep_dropout, reuse=False):
-    with tf.variable_scope("glimps"):
+    with tf.variable_scope("glimpse"):
         h = int(feature_maps.get_shape()[1])
         w = int(feature_maps.get_shape()[2])
         c = int(feature_maps.get_shape()[3])
