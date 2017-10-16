@@ -43,7 +43,7 @@ def compute_attention(feature_maps, context, no_mlp_units, reuse=False):
 
 
 # cf https://arxiv.org/abs/1610.04325
-def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep_dropout, reuse=False):
+def compute_glimpse(feature_maps, context, no_glimpse, glimpse_embedding_size, keep_dropout, reuse=False):
     with tf.variable_scope("glimpse"):
         h = int(feature_maps.get_shape()[1])
         w = int(feature_maps.get_shape()[2])
@@ -51,13 +51,13 @@ def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep
 
         # reshape state to perform batch operation
         context = tf.nn.dropout(context, keep_dropout)
-        projected_context = utils.fully_connected(context, glimse_embedding_size,
+        projected_context = utils.fully_connected(context, glimpse_embedding_size,
                                                   scope='hidden_layer', activation="tanh",
                                                   use_bias=False, reuse=reuse)
 
         projected_context = tf.expand_dims(projected_context, axis=1)
         projected_context = tf.tile(projected_context, [1, h * w, 1])
-        projected_context = tf.reshape(projected_context, [-1, glimse_embedding_size])
+        projected_context = tf.reshape(projected_context, [-1, glimpse_embedding_size])
 
         feature_maps = tf.reshape(feature_maps, shape=[-1, h * w, c])
 
@@ -65,16 +65,16 @@ def compute_glimpse(feature_maps, context, no_glims, glimse_embedding_size, keep
         with tf.variable_scope("glimpse"):
             g_feature_maps = tf.reshape(feature_maps, shape=[-1, c])  # linearise the feature map as as single batch
             g_feature_maps = tf.nn.dropout(g_feature_maps, keep_dropout)
-            g_feature_maps = utils.fully_connected(g_feature_maps, glimse_embedding_size, scope='image_projection',
+            g_feature_maps = utils.fully_connected(g_feature_maps, glimpse_embedding_size, scope='image_projection',
                                                    activation="tanh", use_bias=False, reuse=reuse)
 
             hadamard = g_feature_maps * projected_context
             hadamard = tf.nn.dropout(hadamard, keep_dropout)
 
-            e = utils.fully_connected(hadamard, no_glims, scope='hadamard_projection', reuse=reuse)
-            e = tf.reshape(e, shape=[-1, h * w, no_glims])
+            e = utils.fully_connected(hadamard, no_glimpse, scope='hadamard_projection', reuse=reuse)
+            e = tf.reshape(e, shape=[-1, h * w, no_glimpse])
 
-            for i in range(no_glims):
+            for i in range(no_glimpse):
                 ev = e[:, :, i]
                 alpha = tf.nn.softmax(ev)
                 # apply soft attention

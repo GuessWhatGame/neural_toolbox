@@ -3,19 +3,18 @@ import tensorflow.contrib.slim as slim
 
 import neural_toolbox.ft_utils as ft_utils
 
-def film_layer(features, context, reuse=False):
+def film_layer(ft, context, reuse=False):
     """
     A very basic FiLM layer with a linear transformation from context to FiLM parameters
-    :param features: features map to modulate. Must be a 3-D input vector (+batch size)
+    :param ft: features map to modulate. Must be a 3-D input vector (+batch size)
     :param context: conditioned FiLM parameters. Must be a 1-D input vector (+batch size)
     :param reuse: reuse variable, e.g, multi-gpu
-    :param scope: tensorflow scope
     :return: modulated features
     """
 
-    height = int(features.get_shape()[1])
-    width = int(features.get_shape()[2])
-    feature_size = int(features.get_shape()[3])
+    height = int(ft.get_shape()[1])
+    width = int(ft.get_shape()[2])
+    feature_size = int(ft.get_shape()[3])
 
     film_params = slim.fully_connected(context,
                                        num_outputs=2 * feature_size,
@@ -30,7 +29,7 @@ def film_layer(features, context, reuse=False):
     gammas = film_params[:, :, :, :feature_size]
     betas = film_params[:, :, :, feature_size:]
 
-    output = (1 + gammas) * features + betas
+    output = (1 + gammas) * ft + betas
 
     return output
 
@@ -40,7 +39,7 @@ class FiLMResblock(object):
                  film_layer_fct=film_layer,
                  kernel1=list([1, 1]),
                  kernel2=list([3, 3]),
-                 initializer=slim.variance_scaling_initializer(uniform=True),
+                 conv_weights_regularizer=None,
                  spatial_location=True, reuse=None):
 
         # Retrieve the size of the feature map
@@ -55,8 +54,7 @@ class FiLMResblock(object):
                                  num_outputs=feature_size,
                                  kernel_size=kernel1,
                                  activation_fn=tf.nn.relu,
-                                 weights_initializer=initializer,
-                                 biases_initializer=initializer,
+                                 weights_regularizer=conv_weights_regularizer,
                                  scope='conv1',
                                  reuse=reuse)
 
@@ -65,8 +63,7 @@ class FiLMResblock(object):
                                  num_outputs=feature_size,
                                  kernel_size=kernel2,
                                  activation_fn=None,
-                                 weights_initializer=initializer,
-                                 biases_initializer=initializer,
+                                 weights_regularizer=conv_weights_regularizer,
                                  scope='conv2',
                                  reuse=reuse)
 
@@ -99,7 +96,7 @@ if __name__ == '__main__':
     feature_maps = tf.placeholder(tf.float32, shape=[None, 3, 3, 2])
     lstm_state = tf.placeholder(tf.float32, shape=[None, 6])
 
-    modulated_feat1 = film_layer(features=feature_maps, context=lstm_state)
+    modulated_feat1 = film_layer(ft=feature_maps, context=lstm_state)
     modulated_feat2 = FiLMResblock(features=feature_maps, context=lstm_state, is_training=True).get()
 
     sess = tf.InteractiveSession()
