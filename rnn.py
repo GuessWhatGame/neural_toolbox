@@ -25,7 +25,7 @@ def variable_length_LSTM(inp, num_hidden, seq_length,
                     sequence_length=seq_length,
                 )
                 states.append(rnn_states)
-                last_states.append(rnn_last_states)
+                last_states.append(rnn_last_states.h)
 
         states = tf.concat(states, axis=2)
         last_states = tf.concat(last_states, axis=1)
