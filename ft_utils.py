@@ -38,3 +38,5 @@ def pooling_to_shape(feature_maps, shape, pooling=tf.nn.avg_pool):
         reduce_fm = feature_maps
 
     return reduce_fm
+
+

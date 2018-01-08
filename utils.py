@@ -3,18 +3,6 @@ from tensorflow.python.ops.init_ops import UniformUnitScaling, Constant
 
 #TODO slowly delete those modules
 
-
-def get_embedding(lookup_indices, n_words, n_dim,
-                  scope="embedding", reuse=False):
-    with tf.variable_scope(scope, reuse=reuse):
-        with tf.control_dependencies([tf.assert_non_negative(n_words - tf.reduce_max(lookup_indices))]):
-            embedding_matrix = tf.get_variable(
-                'W', [n_words, n_dim],
-                initializer=tf.random_uniform_initializer(-0.08, 0.08))
-            embedded = tf.nn.embedding_lookup(embedding_matrix, lookup_indices)
-            return embedded
-
-
 def fully_connected(inp, n_out, activation=None, scope="fully_connected",
                     weight_initializer=UniformUnitScaling(),
                     init_bias=0.0, use_bias=True, reuse=False):
@@ -55,13 +43,13 @@ def cross_entropy(y_hat, y):
     raise ValueError('Rank of target vector must be 1 or 2')
 
 
-def error(y_hat, y):
-    if rank(y) == 1:
-        mistakes = tf.not_equal(
-            tf.argmax(y_hat, 1), tf.cast(y, tf.int64))
-    elif rank(y) == 2:
-        mistakes = tf.not_equal(
-            tf.argmax(y_hat, 1), tf.argmax(y, 1))
-    else:
-        assert False
-    return tf.cast(mistakes, tf.float32)
+def masked_softmax(scores, mask):
+
+    # subtract max for stability
+    scores = scores - tf.tile(tf.reduce_max(scores, axis=(1,), keep_dims=True), [1, tf.shape(scores)[1]])
+
+    # compute padded softmax
+    exp_scores = tf.exp(scores)
+    exp_scores *= mask
+    exp_sum_scores = tf.reduce_sum(exp_scores, axis=1, keep_dims=True)
+    return exp_scores / tf.tile(exp_sum_scores, [1, tf.shape(exp_scores)[1]])

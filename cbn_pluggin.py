@@ -1,7 +1,8 @@
 import tensorflow as tf
+from tensorflow.python.ops.init_ops import RandomUniform
+
 import neural_toolbox.utils as utils
 
-from tensorflow.python.ops.init_ops import RandomUniform
 
 class CBNAbtract(object):
     """

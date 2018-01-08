@@ -39,7 +39,6 @@ class FiLMResblock(object):
                  film_layer_fct=film_layer,
                  kernel1=list([1, 1]),
                  kernel2=list([3, 3]),
-                 conv_weights_regularizer=None,
                  spatial_location=True, reuse=None):
 
         # Retrieve the size of the feature map
@@ -54,7 +53,6 @@ class FiLMResblock(object):
                                  num_outputs=feature_size,
                                  kernel_size=kernel1,
                                  activation_fn=tf.nn.relu,
-                                 weights_regularizer=conv_weights_regularizer,
                                  scope='conv1',
                                  reuse=reuse)
 
@@ -63,18 +61,16 @@ class FiLMResblock(object):
                                  num_outputs=feature_size,
                                  kernel_size=kernel2,
                                  activation_fn=None,
-                                 weights_regularizer=conv_weights_regularizer,
                                  scope='conv2',
                                  reuse=reuse)
 
         # Center/reduce output (Batch Normalization with no training parameters)
         self.conv2_bn = slim.batch_norm(self.conv2,
-                                  center=False,
-                                  scale=False,
-                                  trainable=False,
-                                  is_training=is_training,
-                                  scope="bn",
-                                  reuse=reuse)
+                                        center=False,
+                                        scale=False,
+                                        decay=0.9,
+                                        is_training=is_training,
+                                        reuse=reuse)
 
         # Apply FILM layer Residual connection
         with tf.variable_scope("FiLM", reuse=reuse):

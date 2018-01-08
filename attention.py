@@ -1,9 +1,9 @@
 import tensorflow as tf
 
-from neural_toolbox import utils
+import tensorflow.contrib.layers as tfc_layers
 
 
-def compute_attention(feature_maps, context, no_mlp_units, reuse=False):
+def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", reuse=False):
     with tf.variable_scope("attention"):
 
         if len(feature_maps.get_shape()) == 3:
@@ -22,13 +22,33 @@ def compute_attention(feature_maps, context, no_mlp_units, reuse=False):
         context = tf.expand_dims(context, axis=1)
         context = tf.tile(context, [1, h * w, 1])
 
-        embedding = tf.concat([feature_maps, context], axis=2)
+        if fuse_mode == "concat":
+            embedding = tf.concat([feature_maps, context], axis=2)
+        elif fuse_mode == "dot":
+            embedding = feature_maps * context
+        elif fuse_mode == "sum":
+            embedding = feature_maps + context
+        else:
+            assert False, "Invalid embemdding mode : {}".format(fuse_mode)
+
         embedding = tf.reshape(embedding, shape=[-1, s + c])
 
         # compute the evidence from the embedding
         with tf.variable_scope("mlp"):
-            e = utils.fully_connected(embedding, no_mlp_units, scope='hidden_layer', activation="relu", reuse=reuse)
-            e = utils.fully_connected(e, 1, scope='out', reuse=reuse)
+
+            if no_mlp_units > 0:
+                embedding = tfc_layers.fully_connected(embedding,
+                                               num_outputs=no_mlp_units,
+                                               activation_fn=tf.nn.relu,
+                                               scope='hidden_layer',
+                                               reuse=reuse)
+
+            e = tfc_layers.fully_connected(embedding,
+                                           num_outputs=1,
+                                           activation_fn=None,
+                                           scope='out',
+                                           reuse=reuse)
+
 
         e = tf.reshape(e, shape=[-1, h * w, 1])
 
@@ -51,9 +71,12 @@ def compute_glimpse(feature_maps, context, no_glimpse, glimpse_embedding_size, k
 
         # reshape state to perform batch operation
         context = tf.nn.dropout(context, keep_dropout)
-        projected_context = utils.fully_connected(context, glimpse_embedding_size,
-                                                  scope='hidden_layer', activation="tanh",
-                                                  use_bias=False, reuse=reuse)
+        projected_context = tfc_layers.fully_connected(context,
+                                                  num_outputs=glimpse_embedding_size,
+                                                  biases_initializer=None,
+                                                       activation_fn=tf.nn.tanh,
+                                                  scope='hidden_layer',
+                                                  reuse=reuse)
 
         projected_context = tf.expand_dims(projected_context, axis=1)
         projected_context = tf.tile(projected_context, [1, h * w, 1])
@@ -65,13 +88,23 @@ def compute_glimpse(feature_maps, context, no_glimpse, glimpse_embedding_size, k
         with tf.variable_scope("glimpse"):
             g_feature_maps = tf.reshape(feature_maps, shape=[-1, c])  # linearise the feature map as as single batch
             g_feature_maps = tf.nn.dropout(g_feature_maps, keep_dropout)
-            g_feature_maps = utils.fully_connected(g_feature_maps, glimpse_embedding_size, scope='image_projection',
-                                                   activation="tanh", use_bias=False, reuse=reuse)
+            g_feature_maps = tfc_layers.fully_connected(g_feature_maps,
+                                                  num_outputs=glimpse_embedding_size,
+                                                  biases_initializer=None,
+                                                  activation_fn=tf.nn.tanh,
+                                                  scope='image_projection',
+                                                  reuse=reuse)
 
             hadamard = g_feature_maps * projected_context
             hadamard = tf.nn.dropout(hadamard, keep_dropout)
 
-            e = utils.fully_connected(hadamard, no_glimpse, scope='hadamard_projection', reuse=reuse)
+            e = tfc_layers.fully_connected(hadamard,
+                                          num_outputs=no_glimpse,
+                                          biases_initializer=None,
+                                          activation_fn=None,
+                                          scope='hadamard_projection',
+                                          reuse=reuse)
+
             e = tf.reshape(e, shape=[-1, h * w, no_glimpse])
 
             for i in range(no_glimpse):
