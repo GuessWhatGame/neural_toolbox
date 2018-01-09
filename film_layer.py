@@ -3,6 +3,7 @@ import tensorflow.contrib.slim as slim
 
 import neural_toolbox.ft_utils as ft_utils
 
+
 def film_layer(ft, context, reuse=False):
     """
     A very basic FiLM layer with a linear transformation from context to FiLM parameters
@@ -36,13 +37,11 @@ def film_layer(ft, context, reuse=False):
 
 class FiLMResblock(object):
     def __init__(self, features, context, is_training,
+                 feature_size,
                  film_layer_fct=film_layer,
                  kernel1=list([1, 1]),
                  kernel2=list([3, 3]),
                  spatial_location=True, reuse=None):
-
-        # Retrieve the size of the feature map
-        feature_size = int(features.get_shape()[3])
 
         # Append a mask with spatial location to the feature map
         if spatial_location:

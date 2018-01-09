@@ -15,6 +15,7 @@ class FiLM_Stack(object):
 
     def __init__(self, image, film_input, config, is_training, dropout_keep,
                  append_extra_features=append_spatial_location,
+                 attention_input=None,
                  reuse=False):
 
         #####################
@@ -47,12 +48,13 @@ class FiLM_Stack(object):
             res_output = self.stem_conv
             self.resblocks = []
 
-            for i in range(config["resblock"]["no_resblock"]):
+            for i, ft_size in enumerate(config["resblock"]["feature_size"]):
                 with tf.variable_scope("ResBlock_{}".format(i), reuse=reuse):
 
                     res_output = append_extra_features(res_output, config["resblock"])
 
                     resblock = film.FiLMResblock(res_output, film_input,
+                                                 feature_size=ft_size,
                                                  kernel1=config["resblock"]["kernel1"],
                                                  kernel2=config["resblock"]["kernel2"],
                                                  spatial_location=False,
@@ -66,15 +68,15 @@ class FiLM_Stack(object):
         #   Classifier
         #####################
 
-        with tf.variable_scope("classifier", reuse=reuse):
+        with tf.variable_scope("head", reuse=reuse):
 
             classif_features = res_output
             classif_features = append_extra_features(classif_features, config["resblock"])
 
             # 2D-Conv
             self.classif_conv = tfc_layers.conv2d(classif_features,
-                                                  num_outputs=config["classifier"]["conv_out"],
-                                                  kernel_size=config["classifier"]["conv_kernel"],
+                                                  num_outputs=config["head"]["conv_out"],
+                                                  kernel_size=config["head"]["conv_kernel"],
                                                   normalizer_fn=tfc_layers.batch_norm,
                                                   normalizer_params={"center": True, "scale": True,
                                                                      "decay": 0.9,
@@ -84,8 +86,8 @@ class FiLM_Stack(object):
                                                   reuse=reuse,
                                                   scope="classifier_conv")
 
-            self.pooling = get_attention(self.classif_conv, film_input,
-                                         config["classifier"]["attention"],
+            self.pooling = get_attention(self.classif_conv, attention_input,
+                                         config["head"]["attention"],
                                          dropout_keep=dropout_keep,
                                          reuse=reuse)
 
