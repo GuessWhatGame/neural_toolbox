@@ -1,8 +1,5 @@
 import tensorflow as tf
-from tensorflow.python.ops.init_ops import RandomUniform
-
-import neural_toolbox.utils as utils
-
+import tensorflow.contrib.layers as tfc_layers
 
 class CBNAbtract(object):
     """
@@ -46,11 +43,12 @@ class CBNfromLSTM(CBNAbtract):
     """
     Basic LSTM for CBN
     """
-    def __init__(self, lstm_state, no_units, use_betas=True, use_gammas=True):
+    def __init__(self, lstm_state, no_units, dropout_keep=1.0, use_betas=True, use_gammas=True):
         self.lstm_state = lstm_state
         self.cbn_embedding_size = no_units
         self.use_betas = use_betas
         self.use_gammas = use_gammas
+        self.dropout_keep = dropout_keep
 
 
     def create_cbn_input(self, feature_maps):
@@ -58,24 +56,37 @@ class CBNfromLSTM(CBNAbtract):
         batch_size = tf.shape(feature_maps)[0]
 
         if self.use_betas:
-            h_betas = utils.fully_connected(self.lstm_state,
-                                            self.cbn_embedding_size,
-                                            weight_initializer=RandomUniform(-1e-4, 1e-4),
-                                            scope="hidden_betas",
-                                            activation='relu')
-            delta_betas = utils.fully_connected(h_betas, no_features, scope="delta_beta",
-                                                weight_initializer=RandomUniform(-1e-4, 1e-4), use_bias=False)
+            h_betas = tfc_layers.fully_connected(self.lstm_state,
+                                                  num_outputs=self.cbn_embedding_size,
+                                                  activation_fn=tf.nn.relu,
+                                                  scope="hidden_betas")
+
+            h_betas = tf.nn.dropout(h_betas, self.dropout_keep)
+
+            delta_betas = tfc_layers.fully_connected(h_betas,
+                                                  num_outputs = no_features,
+                                                  activation_fn=None,
+                                                  biases_initializer=None,
+                                                  scope="delta_beta")
+
         else:
             delta_betas = tf.tile(tf.constant(0.0, shape=[1, no_features]), tf.stack([batch_size, 1]))
 
         if self.use_gammas:
-            h_gammas = utils.fully_connected(self.lstm_state,
-                                             self.cbn_embedding_size,
-                                             weight_initializer=RandomUniform(-1e-4, 1e-4),
-                                             scope="hidden_gammas",
-                                             activation='relu')
-            delta_gammas = utils.fully_connected(h_gammas, no_features, scope="delta_gamma",
-                                                 weight_initializer=RandomUniform(-1e-4, 1e-4))
+            h_gammas = tfc_layers.fully_connected(self.lstm_state,
+                                                  num_outputs = self.cbn_embedding_size,
+                                                  activation_fn=tf.nn.relu,
+                                                  scope="hidden_gammas")
+
+
+            h_gammas = tf.nn.dropout(h_gammas, self.dropout_keep)
+
+            delta_gammas = tfc_layers.fully_connected(h_gammas,
+                                                  num_outputs = no_features,
+                                                  activation_fn=None,
+                                                  biases_initializer=None,
+                                                  scope="delta_gamma")
+
         else:
             delta_gammas = tf.tile(tf.constant(0.0, shape=[1, no_features]), tf.stack([batch_size, 1]))
 
