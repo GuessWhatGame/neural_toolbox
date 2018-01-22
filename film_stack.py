@@ -14,6 +14,7 @@ def append_spatial_location(features, config):
 class FiLM_Stack(object):
 
     def __init__(self, image, film_input, config, is_training, dropout_keep,
+                 film_layer_fct=film.film_layer,
                  append_extra_features=append_spatial_location,
                  attention_input=None,
                  reuse=False):
@@ -55,6 +56,7 @@ class FiLM_Stack(object):
 
                     resblock = film.FiLMResblock(res_output, film_input,
                                                  feature_size=ft_size,
+                                                 film_layer_fct=film_layer_fct,
                                                  kernel1=config["resblock"]["kernel1"],
                                                  kernel2=config["resblock"]["kernel2"],
                                                  spatial_location=False,
@@ -93,3 +95,4 @@ class FiLM_Stack(object):
 
     def get(self):
         return self.pooling
+
