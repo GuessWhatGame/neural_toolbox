@@ -51,7 +51,8 @@ def create_cell(num_hidden, reuse=False, scope="gru"):
 
 def gru_factory(inputs, num_hidden, seq_length,
                 bidirectional=False,
-                max_pool=False,
+                 max_pool=False,
+                initial_state_fw=None, initial_state_bw=None,
                 reuse=False):
 
     if bidirectional:
@@ -64,6 +65,8 @@ def gru_factory(inputs, num_hidden, seq_length,
         rnn_states, last_rnn_state = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=rnn_cell_forward,
             cell_bw=rnn_cell_backward,
+            initial_state_fw=initial_state_fw,
+            initial_state_bw=initial_state_bw,
             inputs=inputs,
             sequence_length=seq_length,
             dtype=tf.float32)
@@ -84,7 +87,6 @@ def gru_factory(inputs, num_hidden, seq_length,
 
     if max_pool:
         last_rnn_state = tf.reduce_max(rnn_states, axis=1)
-
 
     return rnn_states, last_rnn_state
 
