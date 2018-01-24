@@ -84,7 +84,7 @@ class FiLM_Stack(object):
                                                                      "reuse": reuse},
                                                   activation_fn=tf.nn.relu,
                                                   reuse=reuse,
-                                                  scope="classifier_conv")
+                                                  scope="head_conv")
 
             self.pooling = get_attention(self.classif_conv, attention_input,
                                          config["head"]["attention"],
