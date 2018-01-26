@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflow.contrib.layers as tfc_layers
 
 
-def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", reuse=False):
+def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", keep_dropout=1.0, reuse=False):
     with tf.variable_scope("attention"):
 
         if len(feature_maps.get_shape()) == 3:
@@ -42,6 +42,8 @@ def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", r
                                                activation_fn=tf.nn.relu,
                                                scope='hidden_layer',
                                                reuse=reuse)
+
+                embedding= tf.nn.dropout(embedding, keep_dropout)
 
             e = tfc_layers.fully_connected(embedding,
                                            num_outputs=1,

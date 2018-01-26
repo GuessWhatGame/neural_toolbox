@@ -40,6 +40,7 @@ def create_cell(num_hidden, reuse=False, scope="gru"):
         # if layer_norm:
         #     from neural_toolbox.layer_norm_gru_cell import LNGRUCell
         #     GRUCell = LNGRUCell
+        # simple implem -> https://theneuralperspective.com/2016/10/27/gradient-topics/
 
         rnn_cell = GRUCell(
             num_units=num_hidden,
@@ -89,5 +90,6 @@ def gru_factory(inputs, num_hidden, seq_length,
         last_rnn_state = tf.reduce_max(rnn_states, axis=1)
 
     return rnn_states, last_rnn_state
+
 
 
