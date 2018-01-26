@@ -30,7 +30,7 @@ def variable_length_LSTM(inp, num_hidden, seq_length,
         states = tf.concat(states, axis=2)
         last_states = tf.concat(last_states, axis=1)
 
-        return last_states, states
+        return states, last_states
 
 
 def create_cell(num_hidden, reuse=False, scope="gru"):
