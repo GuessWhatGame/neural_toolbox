@@ -45,3 +45,25 @@ def fuse_by_vis(input1, input2, projection_size, output_size, dropout_keep, acti
                                             scope="final_projection")
 
         return output
+
+def fuse_by_vis_left(input1, input2, projection_size, output_size, dropout_keep, activation=tf.nn.tanh, reuse=False):
+    with tf.variable_scope('vis_fusion_left'):
+
+        input1_projection = input1
+
+        input2_projection = tfc_layers.fully_connected(input2,
+                                                       num_outputs=projection_size,
+                                                       activation_fn=activation,
+                                                       reuse=reuse,
+                                                       scope="input2_projection")
+
+        full_projection = input1_projection * input2_projection
+        full_projection = tf.nn.dropout(full_projection, dropout_keep)
+
+        output = tfc_layers.fully_connected(full_projection,
+                                            num_outputs=output_size,
+                                            activation_fn=activation,
+                                            reuse=reuse,
+                                            scope="final_projection")
+
+        return output
