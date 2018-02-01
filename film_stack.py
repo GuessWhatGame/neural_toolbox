@@ -88,6 +88,7 @@ class FiLM_Stack(object):
                                                   reuse=reuse,
                                                   scope="head_conv")
 
+        with tf.variable_scope("pooling", reuse=reuse):
             self.pooling = get_attention(self.classif_conv, attention_input,
                                          config["head"]["attention"],
                                          dropout_keep=dropout_keep,

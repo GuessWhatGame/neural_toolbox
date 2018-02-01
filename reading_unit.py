@@ -253,7 +253,7 @@ class RecurrentAttReadingUnit(object):
 
         if self.img_prj_units > 0:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-                image_feat = tfc_layers.fully_connected(image_feat,num_outputs=self.img_prj_units, activation=tf.nn.relu)
+                image_feat = tfc_layers.fully_connected(image_feat,num_outputs=self.img_prj_units, activation_fn=tf.nn.relu)
                 image_feat = tf.layers.dropout(image_feat, self.keep_dropout)
 
         with tf.variable_scope(self.scope, reuse=self.reuse):

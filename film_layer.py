@@ -72,7 +72,7 @@ class FiLMResblock(object):
                                         reuse=reuse)
 
         # Apply FILM layer Residual connection
-        with tf.variable_scope("FiLM", reuse=reuse):
+        with tf.variable_scope("FiLM_layer", reuse=reuse):
             self.conv2_film = film_layer_fct(self.conv2_bn, context, reuse=reuse)
 
         # Apply ReLU
