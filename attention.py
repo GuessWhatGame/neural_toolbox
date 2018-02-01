@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflow.contrib.layers as tfc_layers
 
 
-def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", keep_dropout=1.0, reuse=False):
+def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", keep_dropout=1.0, seq_length=None, reuse=False):
     with tf.variable_scope("attention"):
 
         if len(feature_maps.get_shape()) == 3:
@@ -53,6 +53,13 @@ def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", k
 
 
         e = tf.reshape(e, shape=[-1, h * w, 1])
+
+        # Masked embedding for softmax
+        if seq_length is not None:
+            score_mask = tf.sequence_mask(seq_length)
+            score_mask = tf.expand_dims(score_mask, axis=-1)
+            score_mask_values = float("-inf") * tf.ones_like(e)
+            e = tf.where(score_mask, e, score_mask_values)
 
         # compute the softmax over the evidence
         alpha = tf.nn.softmax(e, dim=1)
