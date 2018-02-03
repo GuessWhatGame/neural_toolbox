@@ -2,7 +2,7 @@ import tensorflow as tf
 from neural_toolbox import attention
 
 import tensorflow.contrib.seq2seq as tfc_seq
-import tensorflow.contrib.layers as tfc_layers
+from neural_toolbox import rnn
 import tensorflow.contrib.rnn as tfc_rnn
 
 from neural_toolbox.film_layer import film_layer
@@ -186,10 +186,11 @@ class CLEVRReadingUnit(object):
 class RecurrentReadingUnit(object):
     def __init__(self, last_state, keep_dropout, img_prj_units, reuse):
 
-        self.rnn_cell = tfc_rnn.GRUCell(
+        self.rnn_cell = rnn.create_cell(
             num_units=int(last_state.get_shape()[-1]),
-            activation=tf.nn.tanh,
+            layer_norm=False, # TODO use layer norm if it works!
             reuse=reuse)
+
 
         self.state = last_state
         self.keep_dropout = keep_dropout
@@ -222,10 +223,10 @@ class RecurrentAttReadingUnit(object):
     def __init__(self, states, seq_length, keep_dropout, img_prj_units, reuse):
 
         self.input = states
-        self.rnn_cell = tfc_rnn.GRUCell(
+        self.rnn_cell = rnn.create_cell(
             num_units=int(states.get_shape()[-1]),
-            reuse=reuse,
-            activation=tf.nn.tanh)
+            layer_norm=False, # TODO use layer norm if it works!
+            reuse=reuse)
 
         self.scope = "attrnn_reading_unit"
 
@@ -352,6 +353,8 @@ def create_reading_unit(last_state, states, seq_length, config, keep_dropout, re
                                        seq_length=seq_length,
                                        keep_dropout=keep_dropout,
                                        reuse=reuse)
+    else:
+        assert False, "Invalid reading unit: ".format(unit_type)
 
 
 if __name__ == "__main__":
@@ -377,6 +380,7 @@ if __name__ == "__main__":
         num_hidden=1024,
         bidirectional=False,
         max_pool=False,
+        layer_norm=True,
         reuse=False)
 
     # reading_unit = BasicReadingUnit(states=rnn_states,

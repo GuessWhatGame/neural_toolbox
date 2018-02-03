@@ -33,26 +33,33 @@ def variable_length_LSTM(inp, num_hidden, seq_length,
         return states, last_states
 
 
-def create_cell(num_hidden, reuse=False, scope="gru"):
+def create_cell(num_units, reuse=False, layer_norm=False, scope="gru"):
 
     with tf.variable_scope(scope):
-        GRUCell = tfc_rnn.GRUCell
-        # if layer_norm:
-        #     from neural_toolbox.layer_norm_gru_cell import LNGRUCell
-        #     GRUCell = LNGRUCell
-        # simple implem -> https://theneuralperspective.com/2016/10/27/gradient-topics/
 
-        rnn_cell = GRUCell(
-            num_units=num_hidden,
-            activation=tf.nn.tanh,
-            reuse=reuse)
+        if layer_norm:
+             from neural_toolbox.LayerNormBasicGRUCell import LayerNormBasicGRUCell
+
+             rnn_cell = LayerNormBasicGRUCell(
+                 num_units=num_units,
+                 layer_norm=layer_norm,
+                 activation=tf.nn.tanh,
+                 reuse=reuse)
+
+        else:
+
+            rnn_cell = tfc_rnn.GRUCell(
+                num_units=num_units,
+                activation=tf.nn.tanh,
+                reuse=reuse)
 
     return rnn_cell
 
 
 def gru_factory(inputs, num_hidden, seq_length,
                 bidirectional=False,
-                 max_pool=False,
+                max_pool=False,
+                layer_norm=False,
                 initial_state_fw=None, initial_state_bw=None,
                 reuse=False):
 
@@ -60,8 +67,8 @@ def gru_factory(inputs, num_hidden, seq_length,
 
         num_hidden = num_hidden / 2
 
-        rnn_cell_forward = create_cell(num_hidden, reuse=reuse, scope="forward")
-        rnn_cell_backward = create_cell(num_hidden, reuse=reuse, scope="backward")
+        rnn_cell_forward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, scope="forward")
+        rnn_cell_backward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, scope="backward")
 
         rnn_states, last_rnn_state = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=rnn_cell_forward,
@@ -78,7 +85,7 @@ def gru_factory(inputs, num_hidden, seq_length,
 
     else:
 
-        rnn_cell_forward = create_cell(num_hidden, reuse=reuse, scope="forward")
+        rnn_cell_forward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, scope="forward")
 
         rnn_states, last_rnn_state = tf.nn.dynamic_rnn(
             cell=rnn_cell_forward,
