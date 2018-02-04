@@ -2,11 +2,9 @@ import tensorflow as tf
 from neural_toolbox import attention
 
 import tensorflow.contrib.seq2seq as tfc_seq
-from neural_toolbox import rnn
-import tensorflow.contrib.rnn as tfc_rnn
 
 from neural_toolbox.film_layer import film_layer
-
+from neural_toolbox import rnn
 
 class EmptyReadingUnit(object):
     def __init__(self, last_state):
@@ -30,7 +28,6 @@ class NoReadingUnit(object):
 
     def forward(self, _):
         return self.last_state
-
 
 
 class BasicReadingUnit(object):
@@ -77,7 +74,6 @@ class BasicReadingUnit(object):
         return output
 
 
-
 class BasicReadingUnit2(object):
 
     def __init__(self, states, seq_length, init_cell_state, no_units, shared_attention, fuse_mode="dot", feedback_loop=False, keep_dropout=1., reuse=False):
@@ -93,26 +89,22 @@ class BasicReadingUnit2(object):
         self.keep_dropout = keep_dropout
         self.feedback_loop = feedback_loop
 
-        self.reuse = reuse # This reuse is used by multi-gpu computation, this does not encode weight sharing inside memory cells
+        self.reuse = reuse  # This reuse is used by multi-gpu computation, this does not encode weight sharing inside memory cells
 
     def forward(self, image_feat):
 
-
-
         if self.feedback_loop:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-
                 image_feat = tf.reduce_mean(image_feat, axis=[1, 2])
 
                 new_memory = tf.concat([self.memory_cell, image_feat], axis=-1)
                 new_memory = tfc_layers.fully_connected(new_memory,
-                                           num_outputs=int(self.memory_cell.get_shape()[1]),
-                                           activation_fn=tf.nn.relu,
-                                           scope='hidden_layer',
-                                           reuse=self.reuse) # reuse: multi-gpu computation
+                                                        num_outputs=int(self.memory_cell.get_shape()[1]),
+                                                        activation_fn=tf.nn.relu,
+                                                        scope='hidden_layer',
+                                                        reuse=self.reuse)  # reuse: multi-gpu computation
 
-
-                self.memory_cell =  tf.layers.dropout(new_memory, self.keep_dropout)
+                self.memory_cell = tf.layers.dropout(new_memory, self.keep_dropout)
 
         # Should we reuse attention from one level to another
         reuse = (self.already_forward and self.shared_attention) or self.reuse
@@ -137,7 +129,6 @@ class BasicReadingUnit2(object):
         return output
 
 
-
 # https://openreview.net/pdf?id=S1Euwz-Rb
 class CLEVRReadingUnit(object):
 
@@ -153,21 +144,19 @@ class CLEVRReadingUnit(object):
         self.scope = "clevr_reading_unit"
 
     def forward(self, _):
-
         # Should we reuse attention from one level to another
         reuse = (self.already_forward and self.shared_attention)
 
         with tf.variable_scope(self.scope, reuse=reuse):
-
             projected_state = tfc_layers.fully_connected(
                 self.context_state,
                 num_outputs=int(self.context_state.get_shape()[-1]),
                 activation=None)
 
             proj_context_state = tfc_layers.fully_connected(
-               tf.concat([projected_state, self.context_state], axis=-1),
-               num_outputs=int(self.context_state.get_shape()[-1]),
-               activation=None)
+                tf.concat([projected_state, self.context_state], axis=-1),
+                num_outputs=int(self.context_state.get_shape()[-1]),
+                activation=None)
 
             self.context_state = attention.compute_attention(self.states,
                                                              seq_length=self.seq_length,
@@ -181,16 +170,12 @@ class CLEVRReadingUnit(object):
         return self.context_state
 
 
-
-
 class RecurrentReadingUnit(object):
     def __init__(self, last_state, keep_dropout, img_prj_units, reuse):
-
         self.rnn_cell = rnn.create_cell(
             num_units=int(last_state.get_shape()[-1]),
-            layer_norm=False, # TODO use layer norm if it works!
+            layer_norm=False,  # TODO use layer norm if it works!
             reuse=reuse)
-
 
         self.state = last_state
         self.keep_dropout = keep_dropout
@@ -199,21 +184,17 @@ class RecurrentReadingUnit(object):
         self.reuse = reuse
         self.scope = "rnn_reading_unit"
 
-
-
     def forward(self, ft):
-
         image_feat = tf.reduce_mean(ft, axis=[1, 2])
 
         if self.img_prj_units > 0:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-                image_feat = tfc_layers.fully_connected(image_feat,num_outputs=self.img_prj_units, activation=tf.nn.relu)
+                image_feat = tfc_layers.fully_connected(image_feat, num_outputs=self.img_prj_units, activation=tf.nn.relu)
                 image_feat = tf.layers.dropout(image_feat, self.keep_dropout)
-
 
         with tf.variable_scope(self.scope):
             self.state, _ = self.rnn_cell(inputs=image_feat, state=self.state)
-            #TODO add layer_norm?
+            # TODO add layer_norm?
 
             output = tf.layers.dropout(self.state, self.keep_dropout)
             return output
@@ -221,11 +202,10 @@ class RecurrentReadingUnit(object):
 
 class RecurrentAttReadingUnit(object):
     def __init__(self, states, seq_length, keep_dropout, img_prj_units, reuse):
-
         self.input = states
         self.rnn_cell = rnn.create_cell(
             num_units=int(states.get_shape()[-1]),
-            layer_norm=False, # TODO use layer norm if it works!
+            layer_norm=False,  # TODO use layer norm if it works!
             reuse=reuse)
 
         self.scope = "attrnn_reading_unit"
@@ -240,7 +220,7 @@ class RecurrentAttReadingUnit(object):
                 memory=states,
                 memory_sequence_length=seq_length)
 
-            #TODO missing dropout
+            # TODO missing dropout
             self.decoder_cell = tfc_seq.AttentionWrapper(
                 self.rnn_cell,
                 self.attention_mechanism,
@@ -249,29 +229,27 @@ class RecurrentAttReadingUnit(object):
             self.cell_state = self.decoder_cell.zero_state(batch_size=tf.shape(states)[0], dtype=tf.float32)
 
     def forward(self, ft):
-
         image_feat = tf.reduce_mean(ft, axis=[1, 2])
 
         if self.img_prj_units > 0:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-                image_feat = tfc_layers.fully_connected(image_feat,num_outputs=self.img_prj_units, activation_fn=tf.nn.relu)
+                image_feat = tfc_layers.fully_connected(image_feat, num_outputs=self.img_prj_units, activation_fn=tf.nn.relu)
                 image_feat = tf.layers.dropout(image_feat, self.keep_dropout)
 
         with tf.variable_scope(self.scope, reuse=self.reuse):
-
             output, self.cell_state = self.decoder_cell(image_feat, self.cell_state)
             output = tf.layers.dropout(output, self.keep_dropout)
 
         return output
 
+
 # this factory method create a film layer by calling the reading unit one for every FiLM Resblock
 def create_film_layer_with_reading_unit(reading_unit, stop_gradient):
-
     def film_layer_with_reading_unit(ft, context, reuse=False):
 
         # retrieve
         if stop_gradient:
-            ft = tf.stop_gradient(ft) # see feature map as freeze output (otherwise, the gradient is too complex)
+            ft = tf.stop_gradient(ft)  # see feature map as freeze output (otherwise, the gradient is too complex)
         question_emb = reading_unit.forward(ft)
 
         if len(context) > 0:
@@ -285,7 +263,6 @@ def create_film_layer_with_reading_unit(reading_unit, stop_gradient):
 
 
 def create_reading_unit(last_state, states, seq_length, config, keep_dropout, reuse):
-
     unit_type = config["reading_unit_type"]
 
     if unit_type == "no_question":
@@ -358,7 +335,6 @@ def create_reading_unit(last_state, states, seq_length, config, keep_dropout, re
 
 
 if __name__ == "__main__":
-
     import neural_toolbox.rnn as rnn
     import tensorflow.contrib.layers as tfc_layers
 
@@ -373,7 +349,6 @@ if __name__ == "__main__":
         embed_dim=64,
         scope="word_embedding")
 
-
     rnn_states, last_rnn_state = rnn.gru_factory(
         inputs=word_emb,
         seq_length=_seq_length,
@@ -386,6 +361,3 @@ if __name__ == "__main__":
     # reading_unit = BasicReadingUnit(states=rnn_states,
     #                                 init_cell_state=last_rnn_state,
     #                                 no_units=128, shared_attention=False)
-
-
-

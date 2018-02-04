@@ -15,8 +15,6 @@ def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", k
             w = int(feature_maps.get_shape()[2])
             c = int(feature_maps.get_shape()[3])
 
-        s = int(context.get_shape()[1])
-
         feature_maps = tf.reshape(feature_maps, shape=[-1, h * w, c])
 
         context = tf.expand_dims(context, axis=1)
@@ -31,8 +29,6 @@ def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", k
         else:
             assert False, "Invalid embemdding mode : {}".format(fuse_mode)
 
-        embedding = tf.reshape(embedding, shape=[-1, s + c])
-
         # compute the evidence from the embedding
         with tf.variable_scope("mlp"):
 
@@ -43,16 +39,13 @@ def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", k
                                                scope='hidden_layer',
                                                reuse=reuse)
 
-                embedding= tf.nn.dropout(embedding, keep_dropout)
+                embedding = tf.nn.dropout(embedding, keep_dropout)
 
             e = tfc_layers.fully_connected(embedding,
                                            num_outputs=1,
                                            activation_fn=None,
                                            scope='out',
                                            reuse=reuse)
-
-
-        e = tf.reshape(e, shape=[-1, h * w, 1])
 
         # Masked embedding for softmax
         if seq_length is not None:
