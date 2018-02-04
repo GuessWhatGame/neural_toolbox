@@ -2,9 +2,10 @@ import tensorflow as tf
 from neural_toolbox import attention
 
 import tensorflow.contrib.seq2seq as tfc_seq
+import tensorflow.contrib.layers as tfc_layers
+from neural_toolbox import rnn
 
 from neural_toolbox.film_layer import film_layer
-from neural_toolbox import rnn
 
 class EmptyReadingUnit(object):
     def __init__(self, last_state):
@@ -151,12 +152,12 @@ class CLEVRReadingUnit(object):
             projected_state = tfc_layers.fully_connected(
                 self.context_state,
                 num_outputs=int(self.context_state.get_shape()[-1]),
-                activation=None)
+                activation_fn=None)
 
             proj_context_state = tfc_layers.fully_connected(
                 tf.concat([projected_state, self.context_state], axis=-1),
                 num_outputs=int(self.context_state.get_shape()[-1]),
-                activation=None)
+                activation_fn=None)
 
             self.context_state = attention.compute_attention(self.states,
                                                              seq_length=self.seq_length,
@@ -189,7 +190,7 @@ class RecurrentReadingUnit(object):
 
         if self.img_prj_units > 0:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-                image_feat = tfc_layers.fully_connected(image_feat, num_outputs=self.img_prj_units, activation=tf.nn.relu)
+                image_feat = tfc_layers.fully_connected(image_feat, num_outputs=self.img_prj_units, activation_fn=tf.nn.relu)
                 image_feat = tf.layers.dropout(image_feat, self.keep_dropout)
 
         with tf.variable_scope(self.scope):
