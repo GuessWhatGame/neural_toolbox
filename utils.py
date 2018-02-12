@@ -33,8 +33,6 @@ class MultiLayers(base.Layer):
 
 
 
-
-
 def masked_softmax(scores, mask):
 
     # subtract max for stability

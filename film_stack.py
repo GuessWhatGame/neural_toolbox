@@ -70,29 +70,35 @@ class FiLM_Stack(object):
         #   Classifier
         #####################
 
-        with tf.variable_scope("head", reuse=reuse):
+        if config["head"]["conv_out"] > 0:
 
-            classif_features = res_output
-            classif_features = append_extra_features(classif_features, config["resblock"])
+            with tf.variable_scope("head", reuse=reuse):
 
-            # 2D-Conv
-            self.classif_conv = tfc_layers.conv2d(classif_features,
-                                                  num_outputs=config["head"]["conv_out"],
-                                                  kernel_size=config["head"]["conv_kernel"],
-                                                  normalizer_fn=tfc_layers.batch_norm,
-                                                  normalizer_params={"center": True, "scale": True,
-                                                                     "decay": 0.9,
-                                                                     "is_training": is_training,
-                                                                     "reuse": reuse},
-                                                  activation_fn=tf.nn.relu,
-                                                  reuse=reuse,
-                                                  scope="head_conv")
+                classif_features = res_output
+                classif_features = append_extra_features(classif_features, config["resblock"])
+
+                # 2D-Conv
+                self.classif_conv = tfc_layers.conv2d(classif_features,
+                                                      num_outputs=config["head"]["conv_out"],
+                                                      kernel_size=config["head"]["conv_kernel"],
+                                                      normalizer_fn=tfc_layers.batch_norm,
+                                                      normalizer_params={"center": True, "scale": True,
+                                                                         "decay": 0.9,
+                                                                         "is_training": is_training,
+                                                                         "reuse": reuse},
+                                                      activation_fn=tf.nn.relu,
+                                                      reuse=reuse,
+                                                      scope="head_conv")
+        else:
+            self.classif_conv = res_output
 
         with tf.variable_scope("pooling", reuse=reuse):
             self.pooling = get_attention(self.classif_conv, attention_input,
                                          config["head"]["attention"],
                                          dropout_keep=dropout_keep,
                                          reuse=reuse)
+
+
 
     def get(self):
         return self.pooling
