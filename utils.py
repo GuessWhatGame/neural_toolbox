@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow.python.ops.init_ops import UniformUnitScaling, Constant
-import cocoapi.PythonAPI.pycocotools.mask as cocoapi
+
 
 #TODO slowly delete those modules
 
@@ -88,11 +88,13 @@ def iou_accuracy(box1, box2):
 def main():
 
     import numpy as np
+    import cocoapi.PythonAPI.pycocotools.mask as cocoapi
+
 
     with tf.Session() as sess:
 
-        sq1 = [[0, 0, 10, 10], [39, 63, 203, 112]]
-        sq2 = [[3, 4, 24, 32], [54, 66, 198, 114]]
+        sq1 = np.array([[0, 0, 10, 10], [39, 63, 203, 112]])
+        sq2 = np.array([[3, 4, 24, 32], [54, 66, 198, 114]])
 
         in1 = tf.placeholder(tf.float64, shape=[None, 4])
         in2 = tf.placeholder(tf.float64, shape=[None, 4])
