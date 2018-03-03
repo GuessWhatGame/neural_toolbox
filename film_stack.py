@@ -94,11 +94,10 @@ class FiLM_Stack(object):
 
         with tf.variable_scope("pooling", reuse=reuse):
             self.pooling = get_attention(self.classif_conv, attention_input,
-                                         config["head"]["attention"],
+                                         config=config["head"]["attention"],
                                          dropout_keep=dropout_keep,
+                                         is_training=is_training,
                                          reuse=reuse)
-
-
 
     def get(self):
         return self.pooling
