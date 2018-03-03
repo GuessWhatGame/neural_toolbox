@@ -121,3 +121,30 @@ def compute_glimpse(feature_maps, context, no_glimpse, glimpse_embedding_size, k
         full_glimpse = tf.concat(glimpses, axis=1)
 
     return full_glimpse
+
+
+
+
+def compute_convolution_pooling(feature_maps, no_mlp_units, is_training, reuse=False):
+    with tf.variable_scope("conv_pooling"):
+
+        if len(feature_maps.get_shape()) == 3:
+            assert False, "Only works on feature maps"
+        else:
+            h = int(feature_maps.get_shape()[1])
+            w = int(feature_maps.get_shape()[2])
+
+        output = tfc_layers.conv2d(feature_maps,
+                                   num_outputs=no_mlp_units,
+                                   kernel_size=[h,w],
+                                   padding='VALID',
+                                   normalizer_params={"center": True, "scale": True,
+                                                      "decay": 0.9,
+                                                      "is_training": is_training,
+                                                      "reuse": reuse},
+                                   activation_fn=tf.nn.relu)
+
+        output = tf.squeeze(output, axis=[1,2])
+
+    return output
+
