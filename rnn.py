@@ -1,5 +1,6 @@
 import tensorflow as tf
 import tensorflow.contrib.rnn as tfc_rnn
+import tensorflow.contrib.cudnn_rnn as cudnn_rnn
 
 # For some reason, it is faster than MultiCell on tf
 def variable_length_LSTM(inp, num_hidden, seq_length,
@@ -33,13 +34,18 @@ def variable_length_LSTM(inp, num_hidden, seq_length,
         return states, last_states
 
 
-def create_cell(num_units, reuse=False, layer_norm=False, scope="gru"):
+def create_cell(num_units, reuse=False, layer_norm=False, scope="gru", use_cudnn=False):
 
     with tf.variable_scope(scope):
 
         if layer_norm:
+
+             if use_cudnn:
+                 assert False, "CUDNN is not supported with layernorm"
+
              from neural_toolbox.LayerNormBasicGRUCell import LayerNormBasicGRUCell
 
+             print("Use LayerNormBasicGRUCell")
              rnn_cell = LayerNormBasicGRUCell(
                  num_units=num_units,
                  layer_norm=layer_norm,
@@ -48,10 +54,17 @@ def create_cell(num_units, reuse=False, layer_norm=False, scope="gru"):
 
         else:
 
-            rnn_cell = tfc_rnn.GRUCell(
-                num_units=num_units,
-                activation=tf.nn.tanh,
-                reuse=reuse)
+            if use_cudnn:
+                print("Use CudnnCompatibleGRUCell")
+                rnn_cell = cudnn_rnn.CudnnCompatibleGRUCell(
+                    num_units=num_units,
+                    reuse=reuse)
+            else:
+                print("Use GRUCell")
+                rnn_cell = tfc_rnn.GRUCell(
+                    num_units=num_units,
+                    activation=tf.nn.tanh,
+                    reuse=reuse)
 
     return rnn_cell
 
@@ -60,6 +73,7 @@ def gru_factory(inputs, num_hidden, seq_length,
                 bidirectional=False,
                 max_pool=False,
                 layer_norm=False,
+                use_cudnn=False,
                 initial_state_fw=None, initial_state_bw=None,
                 reuse=False):
 
@@ -67,8 +81,8 @@ def gru_factory(inputs, num_hidden, seq_length,
 
         num_hidden = num_hidden / 2
 
-        rnn_cell_forward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, scope="forward")
-        rnn_cell_backward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, scope="backward")
+        rnn_cell_forward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, use_cudnn=use_cudnn, scope="forward")
+        rnn_cell_backward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, use_cudnn=use_cudnn, scope="backward")
 
         rnn_states, last_rnn_state = tf.nn.bidirectional_dynamic_rnn(
             cell_fw=rnn_cell_forward,
@@ -85,7 +99,7 @@ def gru_factory(inputs, num_hidden, seq_length,
 
     else:
 
-        rnn_cell_forward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, scope="forward")
+        rnn_cell_forward = create_cell(num_hidden, layer_norm=layer_norm, reuse=reuse, use_cudnn=use_cudnn, scope="forward")
 
         rnn_states, last_rnn_state = tf.nn.dynamic_rnn(
             cell=rnn_cell_forward,
