@@ -355,12 +355,9 @@ class RecurrentAttReadingUnit(object):
 
 
 # this factory method create a film layer by calling the reading unit one for every FiLM Resblock
-def create_film_layer_with_reading_unit(reading_unit, stop_gradient):
+def create_film_layer_with_reading_unit(reading_unit):
     def film_layer_with_reading_unit(ft, context, reuse=False):
 
-        # retrieve
-        if stop_gradient:
-            ft = tf.stop_gradient(ft)  # see feature map as freeze output (otherwise, the gradient is too complex)
         question_emb = reading_unit.forward(ft)
 
         if len(context) > 0:
