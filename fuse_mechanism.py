@@ -44,11 +44,12 @@ def fuse_by_vis(input1, input2, projection_size, output_size, dropout_keep, acti
         full_projection = input1_projection * input2_projection
         full_projection = tf.nn.dropout(full_projection, dropout_keep)
 
-        full_projection = tfc_layers.fully_connected(full_projection,
-                                            num_outputs=output_size,
-                                            activation_fn=activation,
-                                            reuse=reuse,
-                                            scope="final_projection")
+        if output_size > 0:
+            full_projection = tfc_layers.fully_connected(full_projection,
+                                                num_outputs=output_size,
+                                                activation_fn=activation,
+                                                reuse=reuse,
+                                                scope="final_projection")
 
         return full_projection
 
