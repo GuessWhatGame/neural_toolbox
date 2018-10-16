@@ -2,7 +2,8 @@
 import tensorflow as tf
 import numpy as np
 
-def append_spatial_location(features, min_max = list([-1,1])):
+
+def append_spatial_location(features, min_max=list([-1, 1])):
 
     with tf.variable_scope("spatial_location"):
         # Retrieve feature dimension
@@ -24,7 +25,6 @@ def append_spatial_location(features, min_max = list([-1,1])):
     features = tf.concat([features, spatial_feat], axis=3)
 
     return features
-
 
 
 def pooling_to_shape(feature_maps, shape, pooling=tf.nn.avg_pool):

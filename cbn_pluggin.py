@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow.contrib.layers as tfc_layers
 
+
 class CBNAbtract(object):
     """
     Factory (Design pattern) to use cbn
@@ -43,6 +44,7 @@ class CBNfromLSTM(CBNAbtract):
     """
     Basic LSTM for CBN
     """
+
     def __init__(self, lstm_state, no_units, dropout_keep=1.0, use_betas=True, use_gammas=True):
         self.lstm_state = lstm_state
         self.cbn_embedding_size = no_units
@@ -50,42 +52,40 @@ class CBNfromLSTM(CBNAbtract):
         self.use_gammas = use_gammas
         self.dropout_keep = dropout_keep
 
-
     def create_cbn_input(self, feature_maps):
         no_features = int(feature_maps.get_shape()[3])
         batch_size = tf.shape(feature_maps)[0]
 
         if self.use_betas:
             h_betas = tfc_layers.fully_connected(self.lstm_state,
-                                                  num_outputs=self.cbn_embedding_size,
-                                                  activation_fn=tf.nn.relu,
-                                                  scope="hidden_betas")
+                                                 num_outputs=self.cbn_embedding_size,
+                                                 activation_fn=tf.nn.relu,
+                                                 scope="hidden_betas")
 
             h_betas = tf.nn.dropout(h_betas, self.dropout_keep)
 
             delta_betas = tfc_layers.fully_connected(h_betas,
-                                                  num_outputs = no_features,
-                                                  activation_fn=None,
-                                                  biases_initializer=None,
-                                                  scope="delta_beta")
+                                                     num_outputs=no_features,
+                                                     activation_fn=None,
+                                                     biases_initializer=None,
+                                                     scope="delta_beta")
 
         else:
             delta_betas = tf.tile(tf.constant(0.0, shape=[1, no_features]), tf.stack([batch_size, 1]))
 
         if self.use_gammas:
             h_gammas = tfc_layers.fully_connected(self.lstm_state,
-                                                  num_outputs = self.cbn_embedding_size,
+                                                  num_outputs=self.cbn_embedding_size,
                                                   activation_fn=tf.nn.relu,
                                                   scope="hidden_gammas")
-
 
             h_gammas = tf.nn.dropout(h_gammas, self.dropout_keep)
 
             delta_gammas = tfc_layers.fully_connected(h_gammas,
-                                                  num_outputs = no_features,
-                                                  activation_fn=None,
-                                                  biases_initializer=None,
-                                                  scope="delta_gamma")
+                                                      num_outputs=no_features,
+                                                      activation_fn=None,
+                                                      biases_initializer=None,
+                                                      scope="delta_gamma")
 
         else:
             delta_gammas = tf.tile(tf.constant(0.0, shape=[1, no_features]), tf.stack([batch_size, 1]))

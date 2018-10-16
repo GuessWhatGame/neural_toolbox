@@ -18,11 +18,10 @@ class Regularizer(object):
             if any([node in current_scope for node in self.config['dropout_list']]):
                 node = tf.nn.dropout(node, self.dropout_keep)
 
-            #TODO check que ça fout pas le merde is training (on recréé le graph en test)
             elif any([node in current_scope for node in self.config['batchnorm_list']]):
                 node = tfc_layers.batch_norm(node, is_training=self._is_training, reuse=self.reuse)
 
         return node
 
-    def __call__(self, node):
-        return self.apply(node)
+    def __call__(self, node, name):
+        return self.apply(node, name)

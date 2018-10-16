@@ -17,7 +17,7 @@ from tensorflow.python.ops import rnn_cell_impl
 from tensorflow.python.ops import variable_scope as vs
 
 
-class LayerNormBasicGRUCell(rnn_cell_impl.RNNCell):
+class LayerNormBasicGRUCell(rnn_cell_impl.LayerRNNCell):
   """GRU unit with layer normalization.
     This class adds layer normalization to a
     basic GRU unit. Layer normalization implementation is based on:
@@ -27,9 +27,9 @@ class LayerNormBasicGRUCell(rnn_cell_impl.RNNCell):
     and is applied before the internal nonlinearities.
     """
 
-  def __init__(self, num_units,
+  def __init__(self,
+               num_units,
                activation=math_ops.tanh,
-               layer_norm=True,
                norm_gain=1.0,
                norm_shift=0.0,
                reuse=None):
@@ -37,18 +37,14 @@ class LayerNormBasicGRUCell(rnn_cell_impl.RNNCell):
         Args:
           num_units: int, The number of units in the GRU cell.
           activation: Activation function of the inner states.
-          layer_norm: If `True`, layer normalization will be applied.
-          norm_gain: float, The layer normalization gain initial value. If
-            `layer_norm` has been set to `False`, this argument will be ignored.
-          norm_shift: float, The layer normalization shift initial value. If
-            `layer_norm` has been set to `False`, this argument will be ignored.
+          norm_gain: float, The layer normalization gain initial value.
+          norm_shift: float, The layer normalization shift initial value.
         """
 
     super(LayerNormBasicGRUCell, self).__init__(_reuse=reuse)
 
     self._num_units = num_units
     self._activation = activation
-    self._layer_norm = layer_norm
     self._g = norm_gain
     self._b = norm_shift
     self._reuse = reuse
@@ -61,54 +57,70 @@ class LayerNormBasicGRUCell(rnn_cell_impl.RNNCell):
   def output_size(self):
     return self._num_units
 
-  def _linear(self, args, scope):
-    out_size = self._num_units
-    proj_size = args.get_shape()[-1]
-    with vs.variable_scope(scope):
-      weights = vs.get_variable("kernel", [proj_size, out_size])
-      out = math_ops.matmul(args, weights)
-      if not self._layer_norm:
-        bias = vs.get_variable("bias", [out_size])
-        out = nn_ops.bias_add(out, bias)
-    return out
-
   def _norm(self, inp, scope):
-    shape = inp.get_shape()[-1:]
-    gamma_init = init_ops.constant_initializer(self._g)
-    beta_init = init_ops.constant_initializer(self._b)
-    with vs.variable_scope(scope):
-      # Initialize beta and gamma for use by layer_norm.
-      vs.get_variable("gamma", shape=shape, initializer=gamma_init)
-      vs.get_variable("beta", shape=shape, initializer=beta_init)
-    normalized = layers.layer_norm(inp, reuse=True, scope=scope)
-    return normalized
+    # layer_norm is using gamma and beta variables already initialized in build method
+    # this allows to parametrize gamma/beta initializations
+    # reuse is therefore set to True
+    return layers.layer_norm(inp, reuse=True, scope=scope)
+
+  def build(self, inputs_shape):
+    if inputs_shape[1].value is None:
+      raise ValueError("Expected inputs.shape[-1] to be known, saw shape: %s"
+                       % inputs_shape)
+
+    input_depth = inputs_shape[1].value
+
+    # Initialize beta and gamma for use by layer_norm.
+    scopes = ["update_gate",
+              "reset_gate",
+              "candidate_linear_x",
+              "candidate_linear_h"]
+    for scope in scopes:
+      self.add_variable(scope + "/gamma",
+                        shape=[self._num_units],
+                        initializer=init_ops.constant_initializer(self._g))
+      self.add_variable(scope + "/beta",
+                        shape=[self._num_units],
+                        initializer=init_ops.constant_initializer(self._b))
+
+    self._update_gate_kernel = self.add_variable(
+      "update_gate/kernel",
+      shape=[input_depth + self._num_units, self._num_units])
+    self._reset_gate_kernel = self.add_variable(
+      "reset_gate/kernel",
+      shape=[input_depth + self._num_units, self._num_units])
+    self._candidate_linear_x_kernel = self.add_variable(
+      "candidate_linear_x/kernel",
+      shape=[input_depth, self._num_units])
+    self._candidate_linear_h_kernel = self.add_variable(
+      "candidate_linear_h/kernel",
+      shape=[self._num_units, self._num_units])
+
+    self.built = True
 
   def call(self, inputs, state):
     """GRU cell with layer normalization."""
 
     args = array_ops.concat([inputs, state], 1)
 
-    z = self._linear(args, scope="update")
-    r = self._linear(args, scope="reset")
+    z = math_ops.matmul(args, self._update_gate_kernel)
+    r = math_ops.matmul(args, self._reset_gate_kernel)
 
-    if self._layer_norm:
-      z = self._norm(z, "update")
-      r = self._norm(r, "reset")
+    z = self._norm(z, "update_gate")
+    r = self._norm(r, "reset_gate")
 
     z = math_ops.sigmoid(z)
     r = math_ops.sigmoid(r)
 
-    _x = self._linear(inputs, scope="candidate_linear_x")
-    _h = self._linear(state, scope="candidate_linear_h")
+    _x = math_ops.matmul(inputs, self._candidate_linear_x_kernel)
+    _h = math_ops.matmul(state, self._candidate_linear_h_kernel)
 
-    if self._layer_norm:
-      _x = self._norm(_x, scope="candidate_linear_x")
-      _h = self._norm(_h, scope="candidate_linear_h")
+    _x = self._norm(_x, scope="candidate_linear_x")
+    _h = self._norm(_h, scope="candidate_linear_h")
 
     candidate = self._activation(_x + r * _h)
 
     new_h = (1 - z) * state + z * candidate
 
     return new_h, new_h
-
 
