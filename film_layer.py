@@ -49,11 +49,11 @@ class FiLMResblock(object):
 
         # First convolution
         self.conv1_out = slim.conv2d(features,
-                                 num_outputs=feature_size,
-                                 kernel_size=kernel1,
-                                 activation_fn=tf.nn.relu,
-                                 scope='conv1',
-                                 reuse=reuse)
+                                     num_outputs=feature_size,
+                                     kernel_size=kernel1,
+                                     activation_fn=tf.nn.relu,
+                                     scope='conv1',
+                                     reuse=reuse)
 
         # Second convolution
         self.conv2 = slim.conv2d(self.conv1_out,
