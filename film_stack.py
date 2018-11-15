@@ -13,10 +13,11 @@ def append_spatial_location(features, config):
 
 class FiLM_Stack(object):
 
-    def __init__(self, image, film_input, config, is_training, dropout_keep,
+    def __init__(self, image, film_input,
+                 config,
+                 is_training,
                  film_layer_fct=film.film_layer,
                  append_extra_features=append_spatial_location,
-                 attention_input=None,
                  reuse=False):
 
         #####################
@@ -92,13 +93,6 @@ class FiLM_Stack(object):
         else:
             self.classif_conv = res_output
 
-        with tf.variable_scope("pooling", reuse=reuse):
-            self.pooling = get_attention(self.classif_conv, attention_input,
-                                         config=config["head"]["attention"],
-                                         dropout_keep=dropout_keep,
-                                         is_training=is_training,
-                                         reuse=reuse)
-
     def get(self):
-        return self.pooling
+        return self.classif_conv
 
