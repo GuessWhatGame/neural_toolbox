@@ -55,7 +55,7 @@ def compute_attention(feature_maps, context, no_mlp_units, fuse_mode="concat", k
             e = tf.where(score_mask, e, score_mask_values)
 
         # compute the softmax over the evidence
-        alpha = tf.nn.softmax(e, dim=1)
+        alpha = tf.nn.softmax(e, axis=1)
 
         # apply soft attention
         soft_attention = feature_maps * alpha
