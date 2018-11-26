@@ -130,7 +130,7 @@ def create_reading_unit(last_state, states, seq_length, config, reuse):
     if unit_type == "no_question":
         return EmptyReadingUnit(last_state)
 
-    if unit_type == "only_question":
+    if unit_type in ["only_question", "none"]:
         return NoReadingUnit(last_state)
 
     elif unit_type == "basic":
