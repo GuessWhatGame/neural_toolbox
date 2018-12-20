@@ -56,11 +56,11 @@ class BasicReadingUnit(object):
 
         self.reuse = reuse  # This reuse is used by multi-gpu computation, this does not encode weight sharing inside memory cells
 
-    def forward(self, image_feat):
+    def forward(self, image_feature):
 
         if self.inject_img_before:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-                image_feat = tf.reduce_mean(image_feat, axis=[1, 2])
+                image_feat = tf.reduce_mean(image_feature, axis=[1, 2])
 
                 new_memory = tf.concat([self.memory_cell, image_feat], axis=-1)
                 new_memory = tfc_layers.fully_connected(new_memory,
@@ -72,7 +72,7 @@ class BasicReadingUnit(object):
 
         if self.inject_img_before2:
             with tf.variable_scope("feedback_loop", reuse=self.reuse):
-                image_feat = tf.reduce_mean(image_feat, axis=[1, 2])
+                image_feat = tf.reduce_mean(image_feature, axis=[1, 2])
 
                 image_emb = tfc_layers.fully_connected(image_feat,
                                                        num_outputs=int(self.memory_cell.get_shape()[1]),
@@ -107,7 +107,7 @@ class BasicReadingUnit(object):
             self.already_forward = True
 
         if self.inject_img_after:
-            image_feat = tf.reduce_mean(image_feat, axis=[1, 2])
+            image_feat = tf.reduce_mean(image_feature, axis=[1, 2])
             output = tf.concat([output, image_feat], axis=-1)
 
         return output
